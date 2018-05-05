@@ -1,14 +1,18 @@
-FROM golang:1.9-alpine as builder
-RUN apk add --update git
+FROM golang:1.10
 
-RUN go get -u github.com/teralytics/prometheus-ecs-discovery
+WORKDIR /go/src/github.com/teralytics/prometheus-ecs-discovery/
+COPY main.go .
+RUN go get .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o prometheus-ecs-discovery .
 
-FROM alpine:3.6
-RUN apk add --no-cache ca-certificates
 
-WORKDIR /app/
-COPY --from=builder /go/bin/prometheus-ecs-discovery .
 
-RUN mkdir /config
+
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates
+WORKDIR /bin/
+COPY --from=0 /go/src/github.com/teralytics/prometheus-ecs-discovery/prometheus-ecs-discovery .
+
 RUN mkdir /output
 ENTRYPOINT ["./prometheus-ecs-discovery", "-config.write-to=/output/ecs_file_sd.yml"]
