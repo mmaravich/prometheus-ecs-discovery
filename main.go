@@ -413,6 +413,7 @@ func GetTasksOfClusters(svc *ecs.ECS, svcec2 *ec2.EC2, clusterArns []*string) ([
 						break
 					}
 					if len(output.TaskArns) == 0 {
+						log.Printf("Inspected cluster %s, found NO tasks", *clusterArn)
 						break
 					}
 					log.Printf("Inspected cluster %s, found %d tasks", *clusterArn, len(output.TaskArns))
