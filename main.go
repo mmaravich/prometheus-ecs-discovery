@@ -68,6 +68,7 @@ func GetClusters(svc *ecs.ECS) (*ecs.ListClustersOutput, error) {
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println(myoutput)
 		output.ClusterArns = append(output.ClusterArns, myoutput.ClusterArns...)
 		if output.NextToken == nil {
 			break
