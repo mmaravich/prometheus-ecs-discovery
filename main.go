@@ -68,7 +68,6 @@ func GetClusters(svc *ecs.ECS) (*ecs.ListClustersOutput, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println(myoutput)
 		output.ClusterArns = append(output.ClusterArns, myoutput.ClusterArns...)
 		if output.NextToken == nil {
 			break
@@ -185,6 +184,12 @@ func (t *AugmentedTask) ExporterInformation() []*PrometheusTaskInfo {
 			continue
 		}
 
+		var metricPath *string;
+		if metricPath, ok = d.DockerLabels["PROMETHEUS_METRIC_PATH"]; !ok {
+			// There is no metric path defined. Skip this container!
+			continue
+		}
+
 		if *t.LaunchType != "FARGATE" {
 			for _, nb := range i.NetworkBindings {
 				if int(*nb.ContainerPort) == exporterPort {
@@ -210,6 +215,7 @@ func (t *AugmentedTask) ExporterInformation() []*PrometheusTaskInfo {
 			yaml.MapItem{"container_name", *i.Name},
 			yaml.MapItem{"container_arn", *i.ContainerArn},
 			yaml.MapItem{"docker_image", *d.Image},
+			yaml.MapItem{"__metrics_path__", *metricPath},
 		)
 		ret = append(ret, &PrometheusTaskInfo{
 			Targets: []string{fmt.Sprintf("%s:%d", ip, hostPort)},
@@ -413,6 +419,7 @@ func GetTasksOfClusters(svc *ecs.ECS, svcec2 *ec2.EC2, clusterArns []*string) ([
 						log.Printf("Error listing tasks of cluster %s: %s", *clusterArn, err)
 						break
 					}
+
 					if len(output.TaskArns) == 0 {
 						log.Printf("Inspected cluster %s, found NO tasks", *clusterArn)
 						break
@@ -427,6 +434,7 @@ func GetTasksOfClusters(svc *ecs.ECS, svcec2 *ec2.EC2, clusterArns []*string) ([
 						log.Printf("Error describing tasks of cluster %s: %s", *clusterArn, err)
 						break
 					}
+					
 					log.Printf("Described %d tasks in cluster %s", len(descOutput.Tasks), *clusterArn)
 					if len(descOutput.Failures) > 0 {
 						log.Printf("Described %d failures in cluster %s", len(descOutput.Failures), *clusterArn)
